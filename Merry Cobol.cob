@@ -110,8 +110,6 @@
        PROCEDURE DIVISION.
        MAIN.
            DISPLAY TREE.
-           MOVE 0 TO Y.
-           DISPLAY SCREEN_HEIGHT.
            SNOW.
 
        SNOW.

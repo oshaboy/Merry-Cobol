@@ -12,8 +12,11 @@
        77 X PIC 9(2).
        77 Y PIC 9(2).
        77 I PIC 9(3).
+      * The Screen Section acts like a list of instructions for 
+      * how to draw the screen line by line
        SCREEN SECTION.
        78 OFFSET VALUE 20.
+
        01 TREE BACKGROUND-COLOR 0 HIGHLIGHT .
        02 LINE 1 COL OFFSET FOREGROUND-COLOR 6 HIGHLIGHT.
        05 VALUE '           _/^\_' .
@@ -57,10 +60,8 @@
        05 VALUE '/_______________________\'.
        02 LINE 16 COL OFFSET FOREGROUND-COLOR 6.
        05 VALUE '        |      |' .
-      *   BACKGROUND-COLOR 6 REVERSE.
        02 LINE 17 COL OFFSET FOREGROUND-COLOR 6.
        05 VALUE '        |      |'.
-      *   BACKGROUND-COLOR 6 REVERSE.
        02 LINE 18 COL OFFSET FOREGROUND-COLOR 6.
        05 VALUE ' '.
        05 VALUE '[]' FOREGROUND-COLOR 4.
@@ -68,7 +69,12 @@
        05 VALUE '[] ' FOREGROUND-COLOR 3.
        05 VALUE '|      |  '.
        05 VALUE '[]' FOREGROUND-COLOR 4.
-       01 SNOWFLAKES BACKGROUND-COLOR 0 HIGHLIGHT FOREGROUND-COLOR 7.
+
+      * The snowflake buffers just exist so COBOL will know where and how 
+      * to draw the snowflakes. 
+      
+       01 SNOWFLAKES_LEFT BACKGROUND-COLOR 0
+           HIGHLIGHT FOREGROUND-COLOR 7.
        05 LINE  1 PIC X(OFFSET).
        05 LINE  2 PIC X(OFFSET).
        05 LINE  3 PIC X(OFFSET).
@@ -87,7 +93,8 @@
        05 LINE 16 PIC X(OFFSET).
        05 LINE 17 PIC X(OFFSET).
 
-       01 SNOWFLAKES2 BACKGROUND-COLOR 0 HIGHLIGHT FOREGROUND-COLOR 7.
+       01 SNOWFLAKES_RIGHT BACKGROUND-COLOR 0
+           HIGHLIGHT FOREGROUND-COLOR 7.
        05 LINE  1 COL 45 PIC X(OFFSET).
        05 LINE  2 COL 45 PIC X(OFFSET).
        05 LINE  3 COL 45 PIC X(OFFSET).
@@ -110,31 +117,49 @@
        PROCEDURE DIVISION.
        MAIN.
            DISPLAY TREE.
-           SNOW.
+           PERFORM SNOW.
+      * Unreachable 
 
+
+      * Paragraph in charge of Snow.
+      * Randomly sets the SNOWFLAKE and SNOWFLAKE2 screen sections to '*'.
        SNOW.
            PERFORM UNTIL EXIT
+      * Clear the buffer from last loop iteration.
              MOVE 1 TO I
              PERFORM OFFSET_WS TIMES
                  MOVE SPACES TO SNOWFLAKE_BUFFER_ARR(I)
                  ADD 1 TO I
              END-PERFORM
-             PERFORM 8 TIMES
+             
+             PERFORM ADD-SNOWFLAKES-TO-BUFFER
+
+      * Copy the buffer to the left side. The Screen section is already
+      * preconfigured to be drawn on the left in WHITE. 
+             MOVE SNOWFLAKE_BUFFER TO SNOWFLAKES_LEFT
+
+
+
+             PERFORM ADD-SNOWFLAKES-TO-BUFFER
+      * Copy the buffer to the right side.
+             MOVE SNOWFLAKE_BUFFER TO SNOWFLAKES_RIGHT
+             
+      * Display the buffers. 
+             DISPLAY SNOWFLAKES_LEFT
+             DISPLAY SNOWFLAKES_RIGHT
+             CALL "C$SLEEP" USING 1
+           END-PERFORM.
+
+
+      * Put up to 8 Asterisks randomly in SNOWFLAKE_BUFFER
+       ADD-SNOWFLAKES-TO-BUFFER.
+           PERFORM 8 TIMES
                COMPUTE X=OFFSET_WS*FUNCTION RANDOM
+      * Y's range is larger than the screen height so some asterisks will be put
+      * off screen and are subsequently ignored. Becuase it's doubled there's
+      * a 50% chance of the snowflakes not being drawn.
+      * This is to make the amount of snowflakes per side random.
                COMPUTE Y=2*SCREEN_HEIGHT*FUNCTION RANDOM
                MOVE '*' TO SNOWFLAKE_BUFFER_ARR(Y)(X:X)
-             END-PERFORM
-
-             MOVE SNOWFLAKE_BUFFER TO SNOWFLAKES
-             PERFORM 8 TIMES
-               COMPUTE X=OFFSET_WS*FUNCTION RANDOM
-               COMPUTE Y=SCREEN_HEIGHT*2*FUNCTION RANDOM
-               MOVE '*' TO SNOWFLAKE_BUFFER_ARR(Y)(X:X)
-             END-PERFORM
-
-             MOVE SNOWFLAKE_BUFFER TO SNOWFLAKES2
-             DISPLAY SNOWFLAKES
-             DISPLAY SNOWFLAKES2
-             CALL "C$SLEEP" USING 1
            END-PERFORM.
        END PROGRAM MERRY-COBOL.
